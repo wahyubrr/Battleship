@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './GameSpace.css'
+import './GameBoard.css'
 
 function Square(props) {
   return (
@@ -310,7 +310,7 @@ class Board extends React.Component {
   }
 }
 
-class GameSpace extends React.Component {
+class GameBoard extends React.Component {
   render() {
     return (
       <Board/>
@@ -318,4 +318,4 @@ class GameSpace extends React.Component {
   }
 }
 
-export default GameSpace;
+export default GameBoard;
