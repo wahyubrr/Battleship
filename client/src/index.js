@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import GameBoard from './GameBoard.js'
+import Board from './Board.js'
 
 import reportWebVitals from './reportWebVitals';
 
@@ -9,10 +9,7 @@ class Game extends React.Component {
   render() {
     return (
       <div className='game'>
-        <GameBoard />
-        <div className='game-info'>
-          <div>{/* status */}</div>
-        </div>
+        <Board />
       </div>
     );
   }

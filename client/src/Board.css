@@ -28,28 +28,42 @@ ol, ul {
   width: 34px;
 }
 
-.invisibleSquare {
-  background: #fff;
-  border: 0px solid #999;
-  float: left;
-  font-size: 24px;
-  font-weight: bold;
-  line-height: 34px;
-  height: 34px;
-  margin-right: -1px;
-  margin-top: -1px;
-  padding: 0;
-  text-align: center;
-  width: 34px;
-}
-
 .square:focus {
   outline: none;
 }
 
-.game-board {
+.game-container {
   display: flex;
+  flex-wrap: wrap;
   flex-direction: row;
+  justify-content: center;
   column-gap: 40px;
-  min-width: 760px;
+  min-width: 372px;
+  background-color: #fff;
+  padding: 10px 0px 15px 0px;
+  border-radius: 10px;
+}
+
+.board {
+  margin: 0px 0px 20px 10px;
+  flex: 1 0 45%;
+  min-width: 340px;
+  max-width: 340px;
+}
+
+.game-status {
+  flex: 1 0 60%;
+  font-size: 15px;
+  text-align: center;
+}
+
+.status-button {
+  margin: 0px 3px;
+}
+
+.footer {
+  margin: 15px 0px 0px;
+  flex: 1 0 60%;
+  font-size: 16px;
+  text-align: center;
 }

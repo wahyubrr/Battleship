@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import './GameBoard.css'
+import './Board.css'
 
 function Square(props) {
   return (
@@ -13,33 +13,126 @@ function Square(props) {
   );
 }
 
+function ShipCount (props) {
+  let shipCount = "";
+  for (let i = 0; i < props.value; i++) {
+    shipCount = shipCount + "X ";
+  }
+  return (
+    <div>
+      {props.rotation ? "Vertical - " : "Horizontal - "}
+      <span>Your Ships: </span>
+      {shipCount}
+    </div>
+  )
+}
+
 class Board extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      shootingSquares: Array(100).fill(null),
-      boatSquares: Array(100).fill(null),
-      placedBoats: 0,
+      shootingArray: Array(100).fill(null),
+      boatArray: Array(100).fill(null),
+      boatPlaced: 0,
+      boatMaxAmount: 5,
+      boatTypeSelected: 5,  // Boat type Carrier
+      boatRotate: false,
+      gameStatus: 'Place your ships!',
     };
   }
 
   shoot(i) {
     console.log("Shooting on " + i + " coordinate");
-    const squares = this.state.shootingSquares.slice();
+    const squares = this.state.shootingArray.slice();
     squares[i] = 'X';
-    this.setState({shootingSquares: squares});
+    this.setState({shootingArray: squares});
   }
 
-  placeBoat(i) {
-    console.log("Placed boat on " + i + " coordinates");
-    const squares = this.state.boatSquares.slice();
-    squares[i] = '=';
-    if (i % 10 == 9) {
-      squares[i - 1] = '=';
-    } else {
-      squares[i + 1] = '=';
+  placeBoat(coordinate) {
+    if (this.state.boatPlaced < this.state.boatMaxAmount) {
+      console.log("Placed boat on " + coordinate + " coordinates, " + 
+        "and placing boat " + (this.state.boatRotate ? "vertically" : "horizontally"));
+      const squares = this.state.boatArray.slice();
+
+      // Placing boat horizontally
+      if(this.state.boatRotate === false) {
+        let isFull = false;
+        // Decrease the coordinates, so it stay in one row
+        if(coordinate % 10 > (10 - this.state.boatTypeSelected)) {
+            coordinate = coordinate - ((coordinate % 10) - 
+              (10 - this.state.boatTypeSelected));
+        }
+        // Checking is the squares empty?
+        for(let i = 0; i < this.state.boatTypeSelected; i++) {
+          if(squares[coordinate + i] === '=') {
+            console.log('break');
+            isFull = true;
+          }
+        }
+        // Placing boat in their coordinates
+        if(isFull === false) {
+          for(let i = 0; i < this.state.boatTypeSelected; i++) {
+            squares[coordinate + i] = '=';
+          }
+          this.setState({boatPlaced: this.state.boatPlaced + 1});
+          this.setState({gameStatus: ''});
+        } else {
+          this.setState({gameStatus: 'Place already occupied!'});
+        }
+        this.setState({boatArray: squares});
+
+      // Placing boat vertically
+      } else { // Boat rotate true
+        let isFull = false;
+        // Decrease the coordinates, so it stay in one row
+        if(coordinate >= 60) {
+          coordinate = coordinate - (coordinate - ((coordinate % 10) +
+            (this.state.boatTypeSelected * 10)));
+        }
+        let tempCoordinate = coordinate;
+        // Checking is the squares empty?
+        for(let i = 0; i < this.state.boatTypeSelected; i++) {
+          if(squares[tempCoordinate] === '=') {
+            console.log('break');
+            isFull = true;
+          }
+          tempCoordinate = tempCoordinate + 10;
+        }
+        // Placing boat in their coordinates
+        if(isFull === false) {
+          for(let i = 0; i < this.state.boatTypeSelected; i++) {
+            squares[coordinate] = '=';
+            console.log("placing on: " + (coordinate));
+            coordinate = coordinate + 10;
+          }
+          this.setState({boatPlaced: this.state.boatPlaced + 1});
+          this.setState({gameStatus: ''});
+        } else {
+          this.setState({gameStatus: 'Place already occupied!'});
+        }
+        this.setState({boatArray: squares});
+      }
+    } else { // Boat already full
+      this.setState({gameStatus: 'Boat already full!'});
     }
-    this.setState({boatSquares: squares});
+    
+  }
+
+  rotateBoat = () => {
+    console.log("ROTATE BOAT: " + this.state.boatRotate + ' to ' + !this.state.boatRotate);
+    if(this.state.boatRotate === false) {
+      this.setState({boatRotate: true});
+    } else {
+      this.setState({boatRotate: false});
+    }
+  }
+
+  // Reset all boat location
+  resetBoat = () => {
+    console.log("RESETTING BOAT")
+    this.setState({boatArray: []});
+    this.setState({boatPlaced: 0});
+    this.setState({gameStatus: ''});
   }
 
   handleClick(i) {
@@ -52,15 +145,19 @@ class Board extends React.Component {
 
   renderSquare(i) {
     return <Square
-      value={i < 100 ? this.state.shootingSquares[i] : this.state.boatSquares[i - 100]}
+      value={i < 100 ? this.state.shootingArray[i] : this.state.boatArray[i - 100]}
       onClick={() => this.handleClick(i)}
     />
   }
 
+  renderGameStatus(i) {
+    return <ShipCount value={i} rotation={this.state.boatRotate}/>
+  }
+
   render() {
     return (
-      <div className='game-board'>
-        <div>
+      <div className='game-container'>
+        <div className='board'>
           <div>//TARGET BOARD</div>
           <div className='board-row'>
             {this.renderSquare(0)}
@@ -183,8 +280,8 @@ class Board extends React.Component {
             {this.renderSquare(99)}
           </div>
         </div>
-        <div>
-          <div>//OCEAN BOARD</div>
+        <div className='board'>
+          <div>//SHIP BOARD</div>
           <div className='board-row'>
             {this.renderSquare(100)}
             {this.renderSquare(101)}
@@ -305,6 +402,20 @@ class Board extends React.Component {
             {this.renderSquare(198)}
             {this.renderSquare(199)}
           </div>
+        </div>
+        <div className='game-status'>
+          {this.state.gameStatus}
+          {this.renderGameStatus(this.state.boatPlaced)}
+          <button className='status-button'
+            onClick={this.rotateBoat}>ROTATE
+          </button>
+          <button className='status-button'
+            onClick={this.resetBoat}>RESET
+          </button>
+        </div>
+        <div className='footer'>
+          <hr></hr>
+          Made by Wahyu Berlianto
         </div>
       </div>
     );
