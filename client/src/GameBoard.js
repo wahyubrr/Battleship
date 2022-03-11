@@ -19,6 +19,7 @@ class Board extends React.Component {
     this.state = {
       shootingSquares: Array(100).fill(null),
       boatSquares: Array(100).fill(null),
+      placedBoats: 0,
     };
   }
 
@@ -60,7 +61,7 @@ class Board extends React.Component {
     return (
       <div className='game-board'>
         <div>
-          <div>//SHOOTING BOARD</div>
+          <div>//TARGET BOARD</div>
           <div className='board-row'>
             {this.renderSquare(0)}
             {this.renderSquare(1)}
@@ -183,7 +184,7 @@ class Board extends React.Component {
           </div>
         </div>
         <div>
-          <div>//BOAT BOARD</div>
+          <div>//OCEAN BOARD</div>
           <div className='board-row'>
             {this.renderSquare(100)}
             {this.renderSquare(101)}
@@ -310,12 +311,4 @@ class Board extends React.Component {
   }
 }
 
-class GameBoard extends React.Component {
-  render() {
-    return (
-      <Board/>
-    );
-  }
-}
-
-export default GameBoard;
+export default Board;
