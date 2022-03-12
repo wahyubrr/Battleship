@@ -13,18 +13,27 @@ function Square(props) {
   );
 }
 
-function ShipCount (props) {
+function ShipCount(props) {
   let shipCount = "";
   for (let i = 0; i < props.value; i++) {
     shipCount = shipCount + "X ";
   }
-  return (
-    <div>
-      {props.rotation ? "Vertical - " : "Horizontal - "}
-      <span>Your Ships: </span>
-      {shipCount}
-    </div>
-  )
+  if (props.gamePhase === 0) {
+    return (
+      <div>
+        {props.rotation ? "Vertical - " : "Horizontal - "}
+        <span>Your Ships: </span>
+        {shipCount}
+      </div>
+    )
+  } else {
+    return (
+      <div>
+        <span>Your Ships: </span>
+        {shipCount}
+      </div>
+    )
+  }
 }
 
 class Board extends React.Component {
@@ -37,24 +46,87 @@ class Board extends React.Component {
       boatMaxAmount: 5,
       boatTypeSelected: 5,  // Boat type Carrier
       boatRotate: false,
-      gameStatus: 'Place your ships!',
+      gameStatus: 'Place Carrier Ship! - 5 holes',
+      gameTurns: 0, // 0: Your turn, 1: opponent turn
+      gamePhase: 0,
+      // 0: Initial phase, placing boat
+      // 1: Game started
+      // 2: Game finished
     };
   }
 
-  shoot(i) {
-    console.log("Shooting on " + i + " coordinate");
-    const squares = this.state.shootingArray.slice();
-    squares[i] = 'X';
-    this.setState({shootingArray: squares});
+// START OF BUTTON FUNCTIONS
+  // Handle input from player's board
+  handleClick(i) {
+    if (i < 100) {
+      this.shoot(i);
+    } else {
+      this.placeBoat(i - 100);
+    }
   }
 
+  rotateBoat = () => {
+    console.log("ROTATE BOAT: " + this.state.boatRotate + ' to ' + !this.state.boatRotate);
+    if(this.state.boatRotate === false) {
+      this.setState({boatRotate: true});
+    } else {
+      this.setState({boatRotate: false});
+    }
+  }
+
+  // Reset game
+  gameReset = () => {
+    console.log("RESETTING BOAT")
+    this.setState({boatArray: []});
+    this.setState({shootingArray: []});
+    this.setState({boatPlaced: 0});
+    this.setState({gamePhase: 0});
+    this.setState({boatTypeSelected: 5});
+    this.setState({gameStatus: 'Place your ships!'});
+  }
+
+  gameStart = () => {
+    if(this.state.boatPlaced === 5) {
+      console.log("GAME STARTED!");
+      this.setState({gameStatus: 'Your turn to shoot'});
+      this.setState({gamePhase: 1});
+    } else {
+      console.log("Game can't start for now...");
+      this.setState({gameStatus: 'There must be 5 ships on your board!'});
+    }
+  }
+  // END OF BUTTON FUNCTIONS
+
+  // START OF GAME LOGIC
+  // SHOOTING GAME LOGIC
+  shoot(i) {
+    if(this.state.gamePhase !== 0) {
+      console.log("Shooting on " + i + " coordinate");
+      const squares = this.state.shootingArray.slice();
+      squares[i] = 'X';
+      this.setState({shootingArray: squares});
+    } else {
+      this.setState({gameStatus: "Can't shoot for now!"});
+    }
+  }
+  
+  // BOAT PLACING
   placeBoat(coordinate) {
     if (this.state.boatPlaced < this.state.boatMaxAmount) {
       console.log("Placed boat on " + coordinate + " coordinates, " + 
         "and placing boat " + (this.state.boatRotate ? "vertically" : "horizontally"));
       const squares = this.state.boatArray.slice();
 
-      // Placing boat horizontally
+      // Select ship type
+      if(this.state.boatPlaced === 0) {
+        this.setState({boatTypeSelected: 4});
+      } else if(this.state.boatPlaced === 1) {
+        this.setState({boatTypeSelected: 3});
+      } else if(this.state.boatPlaced === 3) {
+        this.setState({boatTypeSelected: 2});
+      }
+
+      // PLACING BOAT HORIZONTALLY
       if(this.state.boatRotate === false) {
         let isFull = false;
         // Decrease the coordinates, so it stay in one row
@@ -76,18 +148,30 @@ class Board extends React.Component {
           }
           this.setState({boatPlaced: this.state.boatPlaced + 1});
           this.setState({gameStatus: ''});
+          if(this.state.boatPlaced === 4) {
+            this.setState({gameStatus: "Your'e all set!"})
+          }
         } else {
           this.setState({gameStatus: 'Place already occupied!'});
         }
         this.setState({boatArray: squares});
 
-      // Placing boat vertically
+      // PLACING BOATS VERTICALLY
       } else { // Boat rotate true
         let isFull = false;
         // Decrease the coordinates, so it stay in one row
-        if(coordinate >= 60) {
-          coordinate = coordinate - (coordinate - ((coordinate % 10) +
-            (this.state.boatTypeSelected * 10)));
+        let limit = 0;
+        if (this.state.boatTypeSelected === 5) {
+          limit = 60;
+        } else if (this.state.boatTypeSelected === 4) {
+          limit = 70
+        } else if (this.state.boatTypeSelected === 3) {
+          limit = 80
+        } else if (this.state.boatTypeSelected === 2) {
+          limit = 90
+        }
+        if(coordinate >= limit) {
+          coordinate = (limit - 10) + (coordinate % 10);
         }
         let tempCoordinate = coordinate;
         // Checking is the squares empty?
@@ -107,6 +191,9 @@ class Board extends React.Component {
           }
           this.setState({boatPlaced: this.state.boatPlaced + 1});
           this.setState({gameStatus: ''});
+          if(this.state.boatPlaced === 4) {
+            this.setState({gameStatus: "Your'e all set!"})
+          }
         } else {
           this.setState({gameStatus: 'Place already occupied!'});
         }
@@ -115,34 +202,25 @@ class Board extends React.Component {
     } else { // Boat already full
       this.setState({gameStatus: 'Boat already full!'});
     }
-    
   }
+  /*
+  Your turn = gameTurns: 0
+  ===============================
+  check if your shooting is accurate
+  if your shooting is accurate, turn it red
+  check what type of ship that you hit
+  setState gameTurns: 1
 
-  rotateBoat = () => {
-    console.log("ROTATE BOAT: " + this.state.boatRotate + ' to ' + !this.state.boatRotate);
-    if(this.state.boatRotate === false) {
-      this.setState({boatRotate: true});
-    } else {
-      this.setState({boatRotate: false});
-    }
-  }
+  ===============================
+  Opponent turn = gameTurns: 1
+  ===============================
+  check if their shooting is accurate
+  if their shooting is accurate, turn your ship red
+  (send the type of ships they are hitting)
+  setState gameTurns: 0
+  */
 
-  // Reset all boat location
-  resetBoat = () => {
-    console.log("RESETTING BOAT")
-    this.setState({boatArray: []});
-    this.setState({boatPlaced: 0});
-    this.setState({gameStatus: ''});
-  }
-
-  handleClick(i) {
-    if (i < 100) {
-      this.shoot(i);
-    } else {
-      this.placeBoat(i - 100);
-    }
-  }
-
+  // RENDER FUNCTIONS
   renderSquare(i) {
     return <Square
       value={i < 100 ? this.state.shootingArray[i] : this.state.boatArray[i - 100]}
@@ -151,7 +229,13 @@ class Board extends React.Component {
   }
 
   renderGameStatus(i) {
-    return <ShipCount value={i} rotation={this.state.boatRotate}/>
+    return (
+      <ShipCount
+        value={i}
+        rotation={this.state.boatRotate}
+        gamePhase={this.state.gamePhase}  
+      />
+    )
   }
 
   render() {
@@ -407,10 +491,13 @@ class Board extends React.Component {
           {this.state.gameStatus}
           {this.renderGameStatus(this.state.boatPlaced)}
           <button className='status-button'
-            onClick={this.rotateBoat}>ROTATE
+          onClick={this.rotateBoat}>ROTATE
           </button>
           <button className='status-button'
-            onClick={this.resetBoat}>RESET
+            onClick={this.gameStart}>START
+          </button>
+          <button className='status-button'
+            onClick={this.gameReset}>RESET
           </button>
         </div>
         <div className='footer'>
