@@ -42,10 +42,13 @@ class Board extends React.Component {
     this.state = {
       shootingArray: Array(100).fill(null),
       boatArray: Array(100).fill(null),
+      boatOpponentArray: Array(100).fill(null),
+      boatOpponentAmount: 0,
       boatPlaced: 0,
       boatMaxAmount: 5,
       boatTypeSelected: 5,  // Boat type Carrier
       boatRotate: false,
+      boatBlockDestroyed: 0,
       gameStatus: 'Place Carrier Ship! - 5 holes',
       gameTurns: 0, // 0: Your turn, 1: opponent turn
       gamePhase: 0,
@@ -61,7 +64,20 @@ class Board extends React.Component {
     if (i < 100) {
       this.shoot(i);
     } else {
-      this.placeBoat(i - 100);
+      // Select ship type
+      let boatTypeSelected = 0;
+      if(this.state.boatPlaced === 0) {
+        boatTypeSelected = 5;
+      } else if(this.state.boatPlaced === 1) {
+        boatTypeSelected = 4;
+      } else if(this.state.boatPlaced === 2) {
+        boatTypeSelected = 3;
+      } else if(this.state.boatPlaced === 3) {
+        boatTypeSelected = 3;
+      } else if(this.state.boatPlaced === 4) {
+        boatTypeSelected = 2;
+      }
+      this.placeBoat((i - 100), boatTypeSelected, this.state.boatRotate, true);
     }
   }
 
@@ -77,8 +93,9 @@ class Board extends React.Component {
   // Reset game
   gameReset = () => {
     console.log("RESETTING BOAT")
-    this.setState({boatArray: []});
-    this.setState({shootingArray: []});
+    this.setState({boatArray: Array(100).fill(null)});
+    this.setState({boatOpponentArray: Array(100).fill(null)});
+    this.setState({shootingArray: Array(100).fill(null)});
     this.setState({boatPlaced: 0});
     this.setState({gamePhase: 0});
     this.setState({boatTypeSelected: 5});
@@ -86,10 +103,11 @@ class Board extends React.Component {
   }
 
   gameStart = () => {
-    if(this.state.boatPlaced === 5) {
+    if(this.state.boatPlaced === 5 && this.state.gamePhase === 0) {
       console.log("GAME STARTED!");
       this.setState({gameStatus: 'Your turn to shoot'});
       this.setState({gamePhase: 1});
+      this.spawnOpponents();
     } else {
       console.log("Game can't start for now...");
       this.setState({gameStatus: 'There must be 5 ships on your board!'});
@@ -99,108 +117,147 @@ class Board extends React.Component {
 
   // START OF GAME LOGIC
   // SHOOTING GAME LOGIC
+  checkWinner = () => {
+    if(this.state.boatBlockDestroyed === 16) {
+      console.log('winner');
+      this.setState({gameStatus: 'You Win!'});
+      this.setState({gamePhase: 2});
+    }
+  }
+
   shoot(i) {
-    if(this.state.gamePhase !== 0) {
+    if(this.state.gamePhase === 1) {
       console.log("Shooting on " + i + " coordinate");
       const squares = this.state.shootingArray.slice();
-      squares[i] = 'X';
+      if(this.state.boatArray[i] === null) {
+        squares[i] = 'X';
+      } else {
+        squares[i] = 'O';
+        this.setState({boatBlockDestroyed:
+          this.state.boatBlockDestroyed + 1});
+      }
       this.setState({shootingArray: squares});
-    } else {
+      this.checkWinner();
+    } else if(this.state.gamePhase === 0) {
       this.setState({gameStatus: "Can't shoot for now!"});
     }
   }
+
+  // Randomize opponent boats
+  spawnOpponents = () => {
+    console.log('opponents spawned');
+    // const squares = this.state.shootingArray.slice();
+    // for(let i = 0; i < 5; i++) {
+    //   let randomCoordinate = Math.floor(Math.random() * 100);
+    //   let randomRotation = Math.floor(Math.random() * 2);
+    //   console.log('random coordinate: ' + randomCoordinate + 
+    //     ' random rotation: ' + randomRotation);
+    //   squares[randomCoordinate] = '/';
+    // }
+    // this.setState({shootingArray: squares});
+
+    // for(let i = 0; i < 5; i++) {
+    //   let randomCoordinate = Math.floor(Math.random() * 100);
+    //   let randomRotation = Math.floor(Math.random() * 2);
+    //   if(randomRotation === 1) {
+    //     randomRotation = true;
+    //   } else {
+    //     randomRotation = false;
+    //   }
+    //   console.log('spawn - random coordinate: ' + randomCoordinate + 
+    //     ' random rotation: ' + randomRotation);
+    //   this.placeBoat(randomCoordinate, 5, randomRotation, false);
+      // this.forceUpdate();
+    // }
+
+  }
   
   // BOAT PLACING
-  placeBoat(coordinate) {
-    if (this.state.boatPlaced < this.state.boatMaxAmount) {
-      console.log("Placed boat on " + coordinate + " coordinates, " + 
-        "and placing boat " + (this.state.boatRotate ? "vertically" : "horizontally"));
-      const squares = this.state.boatArray.slice();
-
-      // Select ship type
-      if(this.state.boatPlaced === 0) {
-        this.setState({boatTypeSelected: 4});
-      } else if(this.state.boatPlaced === 1) {
-        this.setState({boatTypeSelected: 3});
-      } else if(this.state.boatPlaced === 3) {
-        this.setState({boatTypeSelected: 2});
+  placeBoat(coordinate, boatTypeSelected, boatRotation, isPlayer) {
+    if(this.state.gamePhase < 2) {
+      if (this.state.boatPlaced < this.state.boatMaxAmount ||isPlayer === false) {
+        console.log("Placed boat on " + coordinate + " coordinates, " + 
+          "and placing boat " + (boatRotation ? "vertically" : "horizontally"));
+        let squares = Array(100).fill(null);
+        squares = this.state.boatArray.slice();
+        
+        // PLACING BOAT HORIZONTALLY
+        if(boatRotation === false) {
+          let isFull = false;
+          // Decrease the coordinates, so it stay in one row
+          if(coordinate % 10 > (10 - boatTypeSelected)) {
+              coordinate = coordinate - ((coordinate % 10) - 
+                (10 - boatTypeSelected));
+          }
+          // Checking is the squares empty?
+          for(let i = 0; i < boatTypeSelected; i++) {
+            if(squares[coordinate + i] === '=') {
+              console.log('break');
+              isFull = true;
+            }
+          }
+          // Placing boat in their coordinates
+          if(isFull === false) {
+            for(let i = 0; i < boatTypeSelected; i++) {
+              squares[coordinate + i] = '=';
+            }
+            this.setState({boatPlaced: this.state.boatPlaced + 1});
+            this.setState({gameStatus: ''});
+            if(this.state.boatPlaced === 4) {
+              this.setState({gameStatus: "Your'e all set!"})
+            }
+          } else {
+            this.setState({gameStatus: 'Place already occupied!'});
+          }
+          console.log('putting boat in ship board')
+          this.setState({boatArray: squares});
+  
+        // PLACING BOATS VERTICALLY
+        } else { // Boat rotate true
+          let isFull = false;
+          // Decrease the coordinates, so it stay in one row
+          let limit = 0;
+          if (boatTypeSelected === 5) {
+            limit = 60;
+          } else if (boatTypeSelected === 4) {
+            limit = 70
+          } else if (boatTypeSelected === 3) {
+            limit = 80
+          } else if (boatTypeSelected === 2) {
+            limit = 90
+          }
+          if(coordinate >= limit) {
+            coordinate = (limit - 10) + (coordinate % 10);
+          }
+          let tempCoordinate = coordinate;
+          // Checking is the squares empty?
+          for(let i = 0; i < boatTypeSelected; i++) {
+            if(squares[tempCoordinate] === '=') {
+              console.log('break');
+              isFull = true;
+            }
+            tempCoordinate = tempCoordinate + 10;
+          }
+          // Placing boat in their coordinates
+          if(isFull === false) {
+            for(let i = 0; i < boatTypeSelected; i++) {
+              squares[coordinate] = 'II';
+              coordinate = coordinate + 10;
+            }
+            this.setState({boatPlaced: this.state.boatPlaced + 1});
+            this.setState({gameStatus: ''});
+            if(this.state.boatPlaced === 4) {
+              this.setState({gameStatus: "Your'e all set!"})
+            }
+          } else {
+            this.setState({gameStatus: 'Place already occupied!'});
+          }
+          console.log('putting boat in ship board')
+          this.setState({boatArray: squares});
+        }
+      } else { // Boat already full
+        this.setState({gameStatus: 'Boat already full!'});
       }
-
-      // PLACING BOAT HORIZONTALLY
-      if(this.state.boatRotate === false) {
-        let isFull = false;
-        // Decrease the coordinates, so it stay in one row
-        if(coordinate % 10 > (10 - this.state.boatTypeSelected)) {
-            coordinate = coordinate - ((coordinate % 10) - 
-              (10 - this.state.boatTypeSelected));
-        }
-        // Checking is the squares empty?
-        for(let i = 0; i < this.state.boatTypeSelected; i++) {
-          if(squares[coordinate + i] === '=') {
-            console.log('break');
-            isFull = true;
-          }
-        }
-        // Placing boat in their coordinates
-        if(isFull === false) {
-          for(let i = 0; i < this.state.boatTypeSelected; i++) {
-            squares[coordinate + i] = '=';
-          }
-          this.setState({boatPlaced: this.state.boatPlaced + 1});
-          this.setState({gameStatus: ''});
-          if(this.state.boatPlaced === 4) {
-            this.setState({gameStatus: "Your'e all set!"})
-          }
-        } else {
-          this.setState({gameStatus: 'Place already occupied!'});
-        }
-        this.setState({boatArray: squares});
-
-      // PLACING BOATS VERTICALLY
-      } else { // Boat rotate true
-        let isFull = false;
-        // Decrease the coordinates, so it stay in one row
-        let limit = 0;
-        if (this.state.boatTypeSelected === 5) {
-          limit = 60;
-        } else if (this.state.boatTypeSelected === 4) {
-          limit = 70
-        } else if (this.state.boatTypeSelected === 3) {
-          limit = 80
-        } else if (this.state.boatTypeSelected === 2) {
-          limit = 90
-        }
-        if(coordinate >= limit) {
-          coordinate = (limit - 10) + (coordinate % 10);
-        }
-        let tempCoordinate = coordinate;
-        // Checking is the squares empty?
-        for(let i = 0; i < this.state.boatTypeSelected; i++) {
-          if(squares[tempCoordinate] === '=') {
-            console.log('break');
-            isFull = true;
-          }
-          tempCoordinate = tempCoordinate + 10;
-        }
-        // Placing boat in their coordinates
-        if(isFull === false) {
-          for(let i = 0; i < this.state.boatTypeSelected; i++) {
-            squares[coordinate] = '=';
-            console.log("placing on: " + (coordinate));
-            coordinate = coordinate + 10;
-          }
-          this.setState({boatPlaced: this.state.boatPlaced + 1});
-          this.setState({gameStatus: ''});
-          if(this.state.boatPlaced === 4) {
-            this.setState({gameStatus: "Your'e all set!"})
-          }
-        } else {
-          this.setState({gameStatus: 'Place already occupied!'});
-        }
-        this.setState({boatArray: squares});
-      }
-    } else { // Boat already full
-      this.setState({gameStatus: 'Boat already full!'});
     }
   }
   /*
